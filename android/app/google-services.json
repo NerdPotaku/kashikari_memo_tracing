@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "671002324616",
+    "firebase_url": "https://kashikari-memo-c3fce.firebaseio.com",
+    "project_id": "kashikari-memo-c3fce",
+    "storage_bucket": "kashikari-memo-c3fce.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671002324616:android:59dd96ca77e8e0b7",
+        "android_client_info": {
+          "package_name": "com.example.kashikari_memo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOqLP3jfHFICdHd7yhNOu2BVtxz-C97Qk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "671002324616-jlasqmmv9ss279mmivtdvf5fvv9vlekg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "671002324616-os7hn5mdlducdh6e64i6nst9r18opm8o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kashikariMemo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
