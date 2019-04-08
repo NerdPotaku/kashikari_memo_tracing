@@ -1,6 +1,7 @@
 /*------------ Add Start --------------*/
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
 void main() => runApp(MyApp());
 
@@ -26,22 +27,22 @@ class _MyList extends State<List> {
       appBar: AppBar(
         title: const Text("リスト画面"),
       ),
-      // body: Padding(
-      //   padding: const EdgeInsets.all(8.0),
-      //   child: StreamBuilder<QuerySnapshot>(
-      //     stream: Firestore.instance.collection('kashikari-memo').snapshots(),
-      //     builder:
-      //         (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-      //       if (!snapshot.hasData) return const Text('Loarding...');
-      //       return ListView.builder(
-      //         itemCount: snapshot.data.documents.length,
-      //         padding: const EdgeInsets.only(top: 10.0),
-      //         itemBuilder: (context, index) =>
-      //             _buildListItem(context, snapshot.data.documents[index]),
-      //       );
-      //     },
-      //   ),
-      // ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: Firestore.instance.collection('kashikari-memo').snapshots(),
+          builder:
+              (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (!snapshot.hasData) return const Text('Loarding...');
+            return ListView.builder(
+              itemCount: snapshot.data.documents.length,
+              padding: const EdgeInsets.only(top: 10.0),
+              itemBuilder: (context, index) =>
+                  _buildListItem(context, snapshot.data.documents[index]),
+            );
+          },
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
@@ -50,7 +51,7 @@ class _MyList extends State<List> {
               context,
               MaterialPageRoute(
                 settings: const RouteSettings(name: "/new"),
-                builder: (BuildContext contxt) => InputForm(),
+                builder: (BuildContext contxt) => InputForm(null),
               ));
         },
       ),
@@ -59,6 +60,10 @@ class _MyList extends State<List> {
 }
 
 class InputForm extends StatefulWidget {
+  InputForm(this.document);
+  final DocumentSnapshot document;
+
+  @override
   _MyInputFormState createState() => _MyInputFormState();
 }
 
@@ -73,8 +78,37 @@ class _MyInputFormState extends State<InputForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _FormDate _date = _FormDate();
 
+  Future<DateTime> _selectTime(BuildContext context) {
+    return showDatePicker(
+      context: context,
+      initialDate: _date.date,
+      firstDate: DateTime(_date.date.year - 2),
+      lastDate: DateTime(_date.date.year + 2),
+    );
+  }
+
+  void _setLendOrRent(String value) {
+    setState(() {
+      _date.borrowOrLend = value;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    DocumentReference _mainReference;
+    _mainReference = Firestore.instance.collection('kashikari-memo').document();
+    if (widget.document != null) {
+      if (_date.user == null && _date.stuff == null) {
+        _date.borrowOrLend == widget.document['borrowOrLend'];
+        _date.user == widget.document['user'];
+        _date.stuff == widget.document['stuff'];
+        _date.date == widget.document['date'];
+      }
+      _mainReference = Firestore.instance
+          .collection('kashikari-memo')
+          .document(widget.document.documentID);
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('かしかり入力'),
@@ -83,6 +117,16 @@ class _MyInputFormState extends State<InputForm> {
             icon: Icon(Icons.save),
             onPressed: () {
               print("保存ボタンを押しました");
+              if (_formKey.currentState.validate()) {
+                _formKey.currentState.save();
+                _mainReference.setData({
+                  'borrowOrLend': _date.borrowOrLend,
+                  'user': _date.user,
+                  'stuff': _date.stuff,
+                  'date': _date.date
+                });
+                Navigator.pop(context);
+              }
             },
           ),
           IconButton(
@@ -105,6 +149,7 @@ class _MyInputFormState extends State<InputForm> {
                 title: Text("借りた"),
                 onChanged: (String value) {
                   print("借りたをタッチしました");
+                  _setLendOrRent(value);
                 },
               ),
               RadioListTile(
@@ -113,7 +158,24 @@ class _MyInputFormState extends State<InputForm> {
                 title: Text("貸した"),
                 onChanged: (String value) {
                   print("貸したをタッチしました");
+                  _setLendOrRent(value);
                 },
+              ),
+              TextFormField(
+                decoration: const InputDecoration(
+                  icon: const Icon(Icons.person),
+                  hintText: '相手の名前',
+                  labelText: 'Name',
+                ),
+                onSaved: (String value) {
+                  _date.user = value;
+                },
+                validator: (value) {
+                  if (value.isEmpty) {
+                    return '名前は必須入力項目です';
+                  }
+                },
+                initialValue: _date.user,
               ),
               TextFormField(
                 decoration: const InputDecoration(
@@ -121,6 +183,15 @@ class _MyInputFormState extends State<InputForm> {
                   hintText: '借りたもの、貸したもの',
                   labelText: 'loan',
                 ),
+                onSaved: (String value) {
+                  _date.stuff = value;
+                },
+                validator: (value) {
+                  if (value.isEmpty) {
+                    return '借りたもの、貸したものは必須入力項目です';
+                  }
+                },
+                initialValue: _date.stuff,
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -130,6 +201,13 @@ class _MyInputFormState extends State<InputForm> {
                 child: const Text("締切日変更"),
                 onPressed: () {
                   print("締切日変更をタッチしました");
+                  _selectTime(context).then((time) {
+                    if (time != null && time != _date.date) {
+                      setState(() {
+                        _date.date = time;
+                      });
+                    }
+                  });
                 },
               )
             ],
@@ -163,6 +241,12 @@ Widget _buildListItem(BuildContext context, DocumentSnapshot document) {
                 child: const Text("へんしゅう"),
                 onPressed: () {
                   print("編集ボタンを押しました");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        settings: const RouteSettings(name: "/edit"),
+                        builder: (BuildContext context) => InputForm(document)),
+                  );
                 },
               )
             ],
